@@ -1,0 +1,12 @@
+[package]
+name = "json-schema-sort"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+description = "Deterministic, schema-aware sorting for JSON Schema files"
+readme = "README.md"
+repository = "https://github.com/kjanat/json-schema-sort-rs"
+license = "Apache-2.0 OR MIT"
+include = ["/LICENSE*", "/README.md", "/src"]
+
+[dependencies]

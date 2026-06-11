@@ -1,0 +1,10 @@
+edition = "2024"
+max_width = 100
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+imports_layout = "Horizontal"
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+wrap_comments = false
+comment_width = 80
