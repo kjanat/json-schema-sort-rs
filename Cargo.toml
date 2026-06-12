@@ -25,14 +25,6 @@ pkg-fmt = "zip"
 [package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
 pkg-fmt = "zip"
 
-[workspace]
-# Workspaces do not infer the resolver from a member's edition, so pin it.
-resolver        = "3"
-members         = ["crates/*"]
-# Bare cargo commands (and CI, which does not pass --workspace) stay scoped to
-# the root package; the wasm-only plugin is built explicitly with -p + --target.
-default-members = ["."]
-
 [[bin]]
 name              = "json-schema-sort"
 path              = "src/main.rs"
@@ -56,8 +48,7 @@ features = ["preserve_order"]
 default = ["cli"]
 cli     = ["dep:clap", "dep:glob"]
 
-# Workspace-wide release profile: smaller CLI binaries for binstall downloads
-# and a smaller Wasm plugin. Unwinding is kept (no panic = "abort").
+# Smaller release binaries for binstall downloads. Unwinding kept (no abort).
 [profile.release]
 strip = true
 lto   = true
