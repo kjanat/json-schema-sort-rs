@@ -1,0 +1,44 @@
+{
+  "properties": {
+    "status": {
+      "enum": ["active", "archived", "draft"],
+      "type": "string",
+      "markdownEnumDescriptions": ["**on**", "**gone**", "**wip**"],
+      "description": "Lifecycle state",
+      "default": "draft"
+    },
+    "id": {
+      "minLength": 1,
+      "type": "string",
+      "title": "Identifier"
+    }
+  },
+  "x-taplo": { "hidden": false },
+  "type": ["object", "null"],
+  "title": "Product",
+  "$id": "https://example.com/product.schema.json",
+  "required": ["status", "id"],
+  "zzz-vendor-flag": true,
+  "markdownDescription": "**A product**",
+  "description": "A product record",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "$defs": {
+    "money": {
+      "maximum": 1000000,
+      "minimum": 0,
+      "type": "number",
+      "examples": [
+        { "currency": "USD", "amount": 10 }
+      ]
+    }
+  },
+  "default": {
+    "status": "draft",
+    "id": "p_000"
+  },
+  "examples": [
+    { "status": "active", "id": "p_001" }
+  ],
+  "const": { "kind": "product", "version": 1 }
+}
