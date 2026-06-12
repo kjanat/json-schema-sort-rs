@@ -67,6 +67,33 @@ fn groups_applicators_and_validation_by_vocabulary() {
 }
 
 #[test]
+fn ranks_known_tooling_extensions_after_standard_keywords() {
+    let mut value = json!({
+        "x-taplo": {},
+        "markdownDescription": "**hi**",
+        "zzz-unknown": true,
+        "description": "hi",
+        "type": "string"
+    });
+
+    json_schema_sort::sort_schema(&mut value);
+
+    let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
+    // Standard keywords first, then known extensions in tool order, then
+    // truly-unknown keys alphabetically.
+    assert_eq!(
+        keys,
+        [
+            "description",
+            "type",
+            "markdownDescription",
+            "x-taplo",
+            "zzz-unknown"
+        ]
+    );
+}
+
+#[test]
 fn does_not_sort_enum_arrays() {
     let mut value = json!({
         "enum": ["bronze", "silver", "gold"]

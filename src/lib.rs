@@ -272,6 +272,32 @@ fn schema_key_rank(key: &str) -> Option<u8> {
         "unevaluatedItems" => 90,
         "unevaluatedProperties" => 91,
 
+        // Non-standard tooling extensions. These are not part of any JSON
+        // Schema vocabulary; they are recognized by the language servers that
+        // back SchemaStore. Ranked after every standard keyword but ahead of
+        // unknown keys, and grouped by the tool that consumes them.
+        //
+        // vscode-json-languageservice
+        "markdownDescription" => 100,
+        "enumDescriptions" => 101,
+        "markdownEnumDescriptions" => 102,
+        "defaultSnippets" => 103,
+        "allowTrailingCommas" => 104,
+        // tamasfe/taplo
+        "x-taplo" => 105,
+        "x-taplo-info" => 106,
+        // tombi-toml/tombi
+        "x-tombi-toml-version" => 107,
+        "x-tombi-array-values-order" => 108,
+        "x-tombi-array-values-order-by" => 109,
+        "x-tombi-table-keys-order" => 110,
+        "x-tombi-string-formats" => 111,
+        "x-tombi-additional-key-label" => 112,
+        // IntelliJ
+        "x-intellij-language-injection" => 113,
+        "x-intellij-html-description" => 114,
+        "x-intellij-enum-metadata" => 115,
+
         _ => return None,
     })
 }
