@@ -27,6 +27,14 @@ cargo install --git https://github.com/kjanat/json-schema-sort-rs \
   json-schema-sort
 ```
 
+<!--<details><summary>powershell</summary>-->
+
+```pwsh
+# powershell
+cargo install --git 'https://github.com/kjanat/json-schema-sort-rs' `
+  json-schema-sort
+```
+
 ## CLI
 
 Sort a schema and print it:
