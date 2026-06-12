@@ -11,18 +11,34 @@ keywords     = ["formatter", "json", "schema", "sort"]
 categories   = ["command-line-utilities", "development-tools"]
 include      = ["/Cargo.toml", "/LICENSE*", "/README.md", "/src", "/tests"]
 
+# cargo-binstall: fetch prebuilt binaries from GitHub Releases.
+# Artifact layout matches taiki-e/upload-rust-binary-action defaults
+# (binary at archive root, `<bin>-<target>.tar.gz`, zip on Windows).
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
+[package.metadata.binstall.overrides.aarch64-pc-windows-msvc]
+pkg-fmt = "zip"
+
 [[bin]]
 name              = "json-schema-sort"
 path              = "src/main.rs"
 required-features = ["cli"]
 
 [dependencies]
-serde_json = { version = "1", features = ["preserve_order"] }
-
 [dependencies.clap]
 version  = "4"
 features = ["derive"]
 optional = true
+
+[dependencies.serde_json]
+version  = "1"
+features = ["preserve_order"]
 
 [features]
 default = ["cli"]
