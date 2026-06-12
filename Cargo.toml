@@ -1,29 +1,29 @@
 [package]
-name = "json-schema-sort"
-version = "0.1.0"
-edition = "2024"
+name         = "json-schema-sort"
+version      = "0.1.0"
+edition      = "2024"
 rust-version = "1.85"
-description = "Deterministic, schema-aware sorting for JSON Schema files"
-readme = "README.md"
-repository = "https://github.com/kjanat/json-schema-sort-rs"
-license = "Apache-2.0 OR MIT"
-keywords = ["json", "schema", "sort", "formatter"]
-categories = ["command-line-utilities", "development-tools"]
-include = ["/Cargo.toml", "/README.md", "/src/**", "/tests/**"]
+description  = "Deterministic, schema-aware sorting for JSON Schema files"
+readme       = "README.md"
+repository   = "https://github.com/kjanat/json-schema-sort-rs"
+license      = "Apache-2.0 OR MIT"
+keywords     = ["formatter", "json", "schema", "sort"]
+categories   = ["command-line-utilities", "development-tools"]
+include      = ["/Cargo.toml", "/README.md", "/src", "/tests"]
+
+[[bin]]
+name              = "json-schema-sort"
+path              = "src/main.rs"
+required-features = ["cli"]
 
 [dependencies]
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dependencies.clap]
-version = "4"
+version  = "4"
 features = ["derive"]
 optional = true
 
 [features]
 default = ["cli"]
-cli = ["dep:clap"]
-
-[[bin]]
-name = "json-schema-sort"
-path = "src/main.rs"
-required-features = ["cli"]
+cli     = ["dep:clap"]
