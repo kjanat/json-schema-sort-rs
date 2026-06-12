@@ -13,7 +13,10 @@ fn sorts_schema_keywords_before_unknown_keys() {
     json_schema_sort::sort_schema(&mut value);
 
     let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
-    assert_eq!(keys, ["$schema", "title", "description", "type", "properties"]);
+    assert_eq!(
+        keys,
+        ["$schema", "title", "description", "type", "properties"]
+    );
 }
 
 #[test]
