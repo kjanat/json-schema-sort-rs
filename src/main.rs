@@ -50,12 +50,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    let options = SortOptions {
-        arrays: if args.no_sort_arrays {
-            ArraySorting::None
-        } else {
-            ArraySorting::SchemaSafe
-        },
+    let mut options = SortOptions::default();
+    options.arrays = if args.no_sort_arrays {
+        ArraySorting::None
+    } else {
+        ArraySorting::SchemaSafe
     };
 
     let output = json_schema_sort::to_string_sorted_with_options(&input, options)?;

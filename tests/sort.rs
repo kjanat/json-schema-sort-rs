@@ -57,3 +57,70 @@ fn does_not_sort_enum_arrays() {
 
     assert_eq!(value["enum"], json!(["bronze", "silver", "gold"]));
 }
+
+#[test]
+fn does_not_reorder_object_keys_inside_opaque_values() {
+    let input = r#"{
+  "enum": [
+    { "z": 1, "a": 2 }
+  ],
+  "default": {
+    "z": 1,
+    "a": 2
+  },
+  "examples": [
+    { "z": 1, "a": 2 }
+  ],
+  "const": {
+    "z": 1,
+    "a": 2
+  }
+}"#;
+
+    let mut value: serde_json::Value = serde_json::from_str(input).unwrap();
+    json_schema_sort::sort_schema(&mut value);
+
+    let enum_keys: Vec<_> = value["enum"][0]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
+    let default_keys: Vec<_> = value["default"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
+    let example_keys: Vec<_> = value["examples"][0]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
+    let const_keys: Vec<_> = value["const"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .cloned()
+        .collect();
+
+    assert_eq!(enum_keys, ["z", "a"]);
+    assert_eq!(default_keys, ["z", "a"]);
+    assert_eq!(example_keys, ["z", "a"]);
+    assert_eq!(const_keys, ["z", "a"]);
+}
+
+#[test]
+fn still_sorts_schema_keys_around_opaque_values() {
+    let mut value = json!({
+        "type": "object",
+        "default": { "z": 1, "a": 2 },
+        "$id": "https://example.com/widget"
+    });
+
+    json_schema_sort::sort_schema(&mut value);
+
+    let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
+    assert_eq!(keys, ["$id", "default", "type"]);
+}

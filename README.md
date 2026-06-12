@@ -12,6 +12,8 @@ This is not a validator, a schema generator, or canonical JSON. It sorts JSON Sc
 
 It deliberately does not sort arrays where order may be meaningful, such as `enum`, `examples`, `prefixItems`, `allOf`, `anyOf`, or `oneOf`.
 
+The literal value payloads of `const`, `enum`, `default`, and `examples` are treated as opaque: their contents are preserved exactly, including the key order of any objects inside them.
+
 ## Installation
 
 ```sh
@@ -56,4 +58,15 @@ Or sort an existing `serde_json::Value`:
 ```rust
 let mut value: serde_json::Value = serde_json::from_str(schema_text)?;
 json_schema_sort::sort_schema(&mut value);
+```
+
+`SortOptions` is `#[non_exhaustive]`. Construct it from `Default` and adjust
+the fields you care about:
+
+```rust
+use json_schema_sort::{ArraySorting, SortOptions};
+
+let mut options = SortOptions::default();
+options.arrays = ArraySorting::None;
+let sorted = json_schema_sort::to_string_sorted_with_options(schema_text, options)?;
 ```
