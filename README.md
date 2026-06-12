@@ -12,6 +12,13 @@ This is not a validator, a schema generator, or canonical JSON. It sorts JSON Sc
 
 It deliberately does not sort arrays where order may be meaningful, such as `enum`, `examples`, `prefixItems`, `allOf`, `anyOf`, or `oneOf`.
 
+## Installation
+
+```sh
+cargo install --git https://github.com/kjanat/json-schema-sort-rs \
+  json-schema-sort
+```
+
 ## CLI
 
 Sort a schema and print it:
