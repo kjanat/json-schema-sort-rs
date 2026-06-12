@@ -1,4 +1,11 @@
+use json_schema_sort::{PropertyOrdering, SortOptions};
 use serde_json::json;
+
+fn preserve_options() -> SortOptions {
+    let mut options = SortOptions::default();
+    options.properties = PropertyOrdering::Preserve;
+    options
+}
 
 #[test]
 fn sorts_schema_keywords_before_unknown_keys() {
@@ -34,6 +41,80 @@ fn sorts_property_keys_alphabetically() {
     let properties = value.get("properties").unwrap().as_object().unwrap();
     let keys: Vec<_> = properties.keys().cloned().collect();
     assert_eq!(keys, ["a", "z"]);
+}
+
+#[test]
+fn preserves_property_order_when_requested() {
+    let mut value = json!({
+        "type": "object",
+        "properties": {
+            "z": { "type": "string" },
+            "a": { "type": "number" }
+        }
+    });
+
+    json_schema_sort::sort_schema_with_options(&mut value, preserve_options());
+
+    let properties = value.get("properties").unwrap().as_object().unwrap();
+    let keys: Vec<_> = properties.keys().cloned().collect();
+    assert_eq!(
+        keys,
+        ["z", "a"],
+        "property names should keep document order"
+    );
+}
+
+#[test]
+fn preserve_still_sorts_keywords_inside_each_property() {
+    let mut value = json!({
+        "properties": {
+            "z": { "type": "string", "$id": "x", "title": "Z" }
+        }
+    });
+
+    json_schema_sort::sort_schema_with_options(&mut value, preserve_options());
+
+    let inner = value["properties"]["z"].as_object().unwrap();
+    let keys: Vec<_> = inner.keys().cloned().collect();
+    assert_eq!(keys, ["$id", "title", "type"]);
+}
+
+#[test]
+fn preserves_defs_name_order() {
+    let mut value = json!({
+        "$defs": {
+            "zebra": { "type": "string" },
+            "apple": { "type": "number" }
+        }
+    });
+
+    json_schema_sort::sort_schema_with_options(&mut value, preserve_options());
+
+    let defs = value["$defs"].as_object().unwrap();
+    let keys: Vec<_> = defs.keys().cloned().collect();
+    assert_eq!(keys, ["zebra", "apple"]);
+}
+
+#[test]
+fn property_named_like_a_keyword_is_treated_as_a_property() {
+    // A property literally named `type` is an identifier, not the `type`
+    // keyword: it must sort alphabetically among siblings (not by keyword
+    // rank) and its array value must not be reordered as a schema-safe array.
+    let mut value = json!({
+        "properties": {
+            "type": { "enum": ["b", "a"] },
+            "id": { "type": "string" }
+        }
+    });
+
+    json_schema_sort::sort_schema(&mut value);
+
+    let properties = value["properties"].as_object().unwrap();
+    let keys: Vec<_> = properties.keys().cloned().collect();
+    assert_eq!(keys, ["id", "type"]);
+    // The value under the `type` property is a real subschema, and its `enum`
+    // payload stays opaque/untouched.
+    assert_eq!(value["properties"]["type"]["enum"], json!(["b", "a"]));
 }
 
 #[test]

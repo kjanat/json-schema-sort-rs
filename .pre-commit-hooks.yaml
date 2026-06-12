@@ -1,0 +1,21 @@
+# pre-commit hooks. Add to your .pre-commit-config.yaml:
+#
+#   - repo: https://github.com/kjanat/json-schema-sort-rs
+#     rev: v0.1.0
+#     hooks:
+#       - id: json-schema-sort
+#
+# By default these match `*.schema.json`. Override `files:` to widen or narrow
+# the set (e.g. `files: ^schemas/.*\.json$`).
+- id: json-schema-sort
+  name: Sort JSON Schema
+  description: Deterministically sort JSON Schema files in place
+  entry: json-schema-sort --write
+  language: rust
+  files: \.schema\.json$
+- id: json-schema-sort-check
+  name: Check JSON Schema sorting
+  description: Fail if any JSON Schema file is not already sorted
+  entry: json-schema-sort --check
+  language: rust
+  files: \.schema\.json$

@@ -36,10 +36,14 @@ version  = "4"
 features = ["derive"]
 optional = true
 
+[dependencies.glob]
+version  = "0.3"
+optional = true
+
 [dependencies.serde_json]
 version  = "1"
 features = ["preserve_order"]
 
 [features]
 default = ["cli"]
-cli     = ["dep:clap"]
+cli     = ["dep:clap", "dep:glob"]

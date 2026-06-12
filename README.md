@@ -8,7 +8,13 @@ This is not a validator, a schema generator, or canonical JSON. It sorts JSON Sc
 
 - JSON object keys by JSON Schema keyword priority.
 - Unknown object keys alphabetically after known schema keywords.
+- Property and `$defs` names alphabetically (use `--preserve-property-order` to
+  keep their authored order — it is often intentional).
 - `required`, `type`, and similar schema-safe string arrays.
+
+A key is only treated as a JSON Schema keyword when it sits in keyword position.
+A property literally named `type`, `enum`, or `required` is an identifier, so it
+sorts alphabetically among its siblings and its value is never reordered.
 
 Known keywords are grouped by their JSON Schema 2020-12 vocabulary (core,
 meta-data, validation, format, content, applicator, unevaluated), and within
@@ -61,6 +67,37 @@ Disable array sorting:
 json-schema-sort --no-sort-arrays schema.json
 ```
 
+Keep property names in their authored order:
+
+```sh
+json-schema-sort --preserve-property-order schema.json
+```
+
+### Multiple inputs
+
+Inputs can be files, directories, or glob patterns. Directories are searched
+recursively for `*.json`. Sorting more than one file requires `--write` or
+`--check` (printing several files to stdout is refused):
+
+```sh
+json-schema-sort --write schemas/                 # whole tree
+json-schema-sort --check 'schemas/**/*.schema.json'
+```
+
+## pre-commit
+
+This repo ships [pre-commit](https://pre-commit.com) hooks. Add to your
+`.pre-commit-config.yaml`:
+
+```yaml
+- repo: https://github.com/kjanat/json-schema-sort-rs
+  rev: v0.1.0
+  hooks:
+    - id: json-schema-sort # rewrites in place; use json-schema-sort-check to only verify
+```
+
+Both hooks default to `*.schema.json`; override `files:` to change the set.
+
 ## Library
 
 ```rust
@@ -78,9 +115,10 @@ json_schema_sort::sort_schema(&mut value);
 the fields you care about:
 
 ```rust
-use json_schema_sort::{ArraySorting, SortOptions};
+use json_schema_sort::{ArraySorting, PropertyOrdering, SortOptions};
 
 let mut options = SortOptions::default();
 options.arrays = ArraySorting::None;
+options.properties = PropertyOrdering::Preserve;
 let sorted = json_schema_sort::to_string_sorted_with_options(schema_text, options)?;
 ```

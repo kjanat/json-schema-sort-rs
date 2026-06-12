@@ -5,11 +5,14 @@
 //! schema generator, or a canonical JSON serializer.
 //!
 //! Object keys are ordered by JSON Schema keyword priority, with unknown keys
-//! falling back to alphabetical order after the known keywords. Arrays whose
-//! order may be meaningful — such as `enum`, `examples`, `prefixItems`,
-//! `allOf`, or `oneOf` — are left untouched, and the literal payloads of
-//! value-bearing keywords (`const`, `enum`, `default`, `examples`) are treated
-//! as opaque and never recursed into.
+//! falling back to alphabetical order after the known keywords. Identifier keys
+//! — the names under `properties`, `$defs`, and similar keyword maps — are
+//! sorted alphabetically by default, or kept in document order via
+//! [`PropertyOrdering::Preserve`]. Arrays whose order may be meaningful — such
+//! as `enum`, `examples`, `prefixItems`, `allOf`, or `oneOf` — are left
+//! untouched, and the literal payloads of value-bearing keywords (`const`,
+//! `enum`, `default`, `examples`) are treated as opaque and never recursed
+//! into.
 //!
 //! # Examples
 //!
@@ -38,6 +41,24 @@ pub enum ArraySorting {
     SchemaSafe,
 }
 
+/// Strategy for ordering identifier keys — the user-defined names under
+/// `properties`, `patternProperties`, `$defs`, and similar keyword maps.
+///
+/// This enum is `#[non_exhaustive]`: new strategies may be added in future
+/// releases, so matches must include a wildcard arm.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum PropertyOrdering {
+    /// Sort identifier keys alphabetically. This keeps diffs stable regardless
+    /// of the order properties were authored in.
+    Sorted,
+    /// Keep identifier keys in their original document order. Property order is
+    /// often intentional (it mirrors struct fields, drives form/UI generation,
+    /// or simply reads better), so this leaves it untouched while still sorting
+    /// the keywords inside each subschema.
+    Preserve,
+}
+
 /// Options controlling how a schema is sorted.
 ///
 /// This struct is `#[non_exhaustive]`: new fields may be added in future
@@ -48,25 +69,37 @@ pub enum ArraySorting {
 pub struct SortOptions {
     /// How to sort arrays. Defaults to [`ArraySorting::SchemaSafe`].
     pub arrays: ArraySorting,
+    /// How to order identifier keys such as property and `$defs` names.
+    /// Defaults to [`PropertyOrdering::Sorted`].
+    pub properties: PropertyOrdering,
 }
 
 impl Default for SortOptions {
     fn default() -> Self {
         Self {
             arrays: ArraySorting::SchemaSafe,
+            properties: PropertyOrdering::Sorted,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 struct Context {
+    /// The keyword whose value this node is, when the parent was a schema
+    /// object. `None` at the root, inside arrays, or when the parent was a
+    /// keyword map (where the parent key is a user identifier, not a keyword).
     parent_key: Option<&'static str>,
+    /// Whether this object's *own* keys are user-defined identifiers (property
+    /// names, `$defs` names, ...) rather than schema keywords. Such keys must
+    /// not be interpreted as keywords and may be order-preserved.
+    keys_are_names: bool,
     in_dependent_required: bool,
 }
 
 impl Context {
     const ROOT: Self = Self {
         parent_key: None,
+        keys_are_names: false,
         in_dependent_required: false,
     };
 }
@@ -128,6 +161,25 @@ fn sort_value(value: &mut Value, context: Context, options: SortOptions) {
 }
 
 fn sort_object(map: &mut Map<String, Value>, context: Context, options: SortOptions) {
+    if context.keys_are_names {
+        // This object is a keyword map (e.g. the value of `properties`): its
+        // keys are user identifiers, and every value is a fresh schema object.
+        // The key names are never keywords, so opaque/keyword handling does not
+        // apply to them.
+        for value in map.values_mut() {
+            sort_value(value, Context::ROOT, options);
+        }
+
+        if options.properties == PropertyOrdering::Preserve {
+            return;
+        }
+
+        let mut entries: Vec<_> = std::mem::take(map).into_iter().collect();
+        entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+        map.extend(entries);
+        return;
+    }
+
     let child_in_dependent_required = context.parent_key == Some("dependentRequired");
 
     for (key, value) in map.iter_mut() {
@@ -141,6 +193,7 @@ fn sort_object(map: &mut Map<String, Value>, context: Context, options: SortOpti
 
         let child_context = Context {
             parent_key: intern_known_key(key),
+            keys_are_names: is_name_map_key(key),
             in_dependent_required: child_in_dependent_required,
         };
 
@@ -154,14 +207,7 @@ fn sort_object(map: &mut Map<String, Value>, context: Context, options: SortOpti
 
 fn sort_array(values: &mut [Value], context: Context, options: SortOptions) {
     for value in values.iter_mut() {
-        sort_value(
-            value,
-            Context {
-                parent_key: None,
-                in_dependent_required: false,
-            },
-            options,
-        );
+        sort_value(value, Context::ROOT, options);
     }
 
     if options.arrays != ArraySorting::SchemaSafe {
@@ -310,6 +356,22 @@ fn schema_key_rank(key: &str) -> Option<u8> {
 /// `serde_json` may still normalize whitespace and some scalar lexemes).
 fn is_opaque_value_key(key: &str) -> bool {
     matches!(key, "const" | "enum" | "default" | "examples")
+}
+
+/// Keywords whose values are maps from user-defined identifiers to subschemas.
+/// The map's own keys are names (property names, definition names, regex
+/// patterns), not schema keywords, so they are ordered by [`PropertyOrdering`]
+/// rather than by keyword rank, and they are never treated as keywords.
+fn is_name_map_key(key: &str) -> bool {
+    matches!(
+        key,
+        "properties"
+            | "patternProperties"
+            | "$defs"
+            | "definitions"
+            | "dependentSchemas"
+            | "dependencies"
+    )
 }
 
 fn intern_known_key(key: &str) -> Option<&'static str> {
