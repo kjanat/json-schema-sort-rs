@@ -10,6 +10,12 @@ This is not a validator, a schema generator, or canonical JSON. It sorts JSON Sc
 - Unknown object keys alphabetically after known schema keywords.
 - `required`, `type`, and similar schema-safe string arrays.
 
+Known keywords are grouped by their JSON Schema 2020-12 vocabulary (core,
+meta-data, validation, format, content, applicator, unevaluated), and within
+each group they follow the order used in that vocabulary's meta-schema. The
+groups themselves are arranged for readability, so identity and documentation
+keywords stay near the top.
+
 It deliberately does not sort arrays where order may be meaningful, such as `enum`, `examples`, `prefixItems`, `allOf`, `anyOf`, or `oneOf`.
 
 The literal value payloads of `const`, `enum`, `default`, and `examples` are treated as opaque: their contents are preserved exactly, including the key order of any objects inside them.

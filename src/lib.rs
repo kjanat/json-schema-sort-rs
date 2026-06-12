@@ -185,71 +185,93 @@ fn compare_schema_keys(left: &str, right: &str) -> Ordering {
     }
 }
 
+// The ranking below mirrors the grouping the JSON Schema 2020-12 authors use
+// in their own meta-schemas: keywords are bucketed by vocabulary (function),
+// and within each bucket they follow the exact property order of that
+// vocabulary's meta-schema file (https://json-schema.org/draft/2020-12/meta/*).
+// The order of the buckets themselves is chosen for human readability
+// (identity -> documentation -> constraints -> annotations -> applicators),
+// so that metadata stays near the top rather than being sorted to the bottom.
+// Legacy keywords from older drafts are slotted next to their modern siblings.
 fn schema_key_rank(key: &str) -> Option<u8> {
     Some(match key {
-        "$schema" => 0,
-        "$id" => 1,
-        "id" => 2, // draft-04 legacy identifier
-        "$anchor" => 3,
-        "$dynamicAnchor" => 4,
-        "$recursiveAnchor" => 5, // draft 2019-09 legacy
-        "$vocabulary" => 6,
-        "$comment" => 7,
-        "title" => 10,
-        "description" => 11,
-        "default" => 12,
-        "examples" => 13,
-        "deprecated" => 14,
-        "readOnly" => 15,
-        "writeOnly" => 16,
-        "type" => 20,
-        "const" => 21,
-        "enum" => 22,
-        "format" => 30,
-        "contentEncoding" => 31,
-        "contentMediaType" => 32,
-        "contentSchema" => 33,
-        "multipleOf" => 40,
-        "minimum" => 41,
-        "exclusiveMinimum" => 42,
-        "maximum" => 43,
-        "exclusiveMaximum" => 44,
-        "minLength" => 50,
-        "maxLength" => 51,
-        "pattern" => 52,
-        "prefixItems" => 60,
-        "items" => 61,
-        "additionalItems" => 62, // draft-07 legacy
-        "unevaluatedItems" => 63,
-        "contains" => 64,
-        "minItems" => 65,
-        "maxItems" => 66,
-        "uniqueItems" => 67,
-        "minContains" => 68,
-        "maxContains" => 69,
-        "properties" => 70,
-        "patternProperties" => 71,
-        "additionalProperties" => 72,
-        "unevaluatedProperties" => 73,
-        "propertyNames" => 74,
-        "required" => 75,
-        "dependentRequired" => 76,
+        // Core vocabulary (.../vocab/core)
+        "$id" => 0,
+        "id" => 1, // draft-04 legacy identifier
+        "$schema" => 2,
+        "$ref" => 3,
+        "$anchor" => 4,
+        "$dynamicRef" => 5,
+        "$recursiveRef" => 6, // draft 2019-09 legacy
+        "$dynamicAnchor" => 7,
+        "$recursiveAnchor" => 8, // draft 2019-09 legacy
+        "$vocabulary" => 9,
+        "$comment" => 10,
+        "$defs" => 11,
+        "definitions" => 12, // draft-07 legacy
+
+        // Meta-data vocabulary (.../vocab/meta-data)
+        "title" => 20,
+        "description" => 21,
+        "default" => 22,
+        "deprecated" => 23,
+        "readOnly" => 24,
+        "writeOnly" => 25,
+        "examples" => 26,
+
+        // Validation vocabulary (.../vocab/validation)
+        "type" => 30,
+        "const" => 31,
+        "enum" => 32,
+        "multipleOf" => 33,
+        "maximum" => 34,
+        "exclusiveMaximum" => 35,
+        "minimum" => 36,
+        "exclusiveMinimum" => 37,
+        "maxLength" => 38,
+        "minLength" => 39,
+        "pattern" => 40,
+        "maxItems" => 41,
+        "minItems" => 42,
+        "uniqueItems" => 43,
+        "maxContains" => 44,
+        "minContains" => 45,
+        "maxProperties" => 46,
+        "minProperties" => 47,
+        "required" => 48,
+        "dependentRequired" => 49,
+        "dependencies" => 50, // draft-07 legacy
+
+        // Format vocabulary (.../vocab/format-annotation)
+        "format" => 60,
+
+        // Content vocabulary (.../vocab/content)
+        "contentEncoding" => 61,
+        "contentMediaType" => 62,
+        "contentSchema" => 63,
+
+        // Applicator vocabulary (.../vocab/applicator)
+        "prefixItems" => 70,
+        "items" => 71,
+        "additionalItems" => 72, // draft-07 legacy
+        "contains" => 73,
+        "additionalProperties" => 74,
+        "properties" => 75,
+        "patternProperties" => 76,
         "dependentSchemas" => 77,
-        "dependencies" => 78, // draft-07 legacy
-        "minProperties" => 79,
-        "maxProperties" => 80,
-        "$defs" => 90,
-        "definitions" => 91,
-        "allOf" => 100,
-        "anyOf" => 101,
-        "oneOf" => 102,
-        "not" => 103,
-        "if" => 104,
-        "then" => 105,
-        "else" => 106,
-        "$ref" => 110,
-        "$dynamicRef" => 111,
-        "$recursiveRef" => 112, // draft 2019-09 legacy
+        "propertyNames" => 78,
+        "if" => 79,
+        "then" => 80,
+        "else" => 81,
+        "allOf" => 82,
+        "anyOf" => 83,
+        "oneOf" => 84,
+        "not" => 85,
+
+        // Unevaluated vocabulary (.../vocab/unevaluated)
+        "unevaluatedItems" => 90,
+        "unevaluatedProperties" => 91,
+
         _ => return None,
     })
 }

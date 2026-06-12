@@ -48,6 +48,25 @@ fn sorts_required_arrays() {
 }
 
 #[test]
+fn groups_applicators_and_validation_by_vocabulary() {
+    // Array applicators (prefixItems/items/contains) belong to the applicator
+    // vocabulary and sort together, separate from the array-size constraints
+    // (minItems/maxItems) which belong to the validation vocabulary.
+    let mut value = json!({
+        "minItems": 1,
+        "allOf": [],
+        "type": "array",
+        "items": { "type": "string" },
+        "title": "Tags"
+    });
+
+    json_schema_sort::sort_schema(&mut value);
+
+    let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
+    assert_eq!(keys, ["title", "type", "minItems", "items", "allOf"]);
+}
+
+#[test]
 fn does_not_sort_enum_arrays() {
     let mut value = json!({
         "enum": ["bronze", "silver", "gold"]
