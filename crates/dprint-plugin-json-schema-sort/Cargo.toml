@@ -1,0 +1,39 @@
+[package]
+name         = "dprint-plugin-json-schema-sort"
+version      = "0.1.0"
+edition      = "2024"
+rust-version = "1.85"
+description  = "dprint plugin that deterministically sorts JSON Schema files"
+repository   = "https://github.com/kjanat/json-schema-sort-rs"
+license      = "Apache-2.0 OR MIT"
+# Distributed as a Wasm plugin via GitHub Releases, not published to crates.io.
+publish      = false
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+anyhow = "1"
+
+[dependencies.dprint-core]
+version  = "0.67.4"
+features = ["formatting"]
+
+[dependencies.dprint-core-macros]
+version = "0.1"
+
+[dependencies.json-schema-sort]
+path             = "../.."
+default-features = false
+
+[dependencies.serde]
+version  = "1"
+features = ["derive"]
+
+# Only needed by the Wasm glue that `generate_plugin_code!` emits.
+[dependencies.serde_json]
+version  = "1"
+optional = true
+
+[features]
+wasm = ["dep:serde_json", "dprint-core/wasm"]
