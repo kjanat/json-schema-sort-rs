@@ -24,6 +24,15 @@ fn write(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+fn git(repo: &Path, args: &[&str]) {
+    let status = Command::new("git")
+        .current_dir(repo)
+        .args(args)
+        .status()
+        .unwrap();
+    assert!(status.success(), "git {args:?} failed");
+}
+
 #[test]
 fn write_recurses_into_a_directory() {
     let dir = workdir("write_dir");
@@ -32,7 +41,11 @@ fn write_recurses_into_a_directory() {
     write(&dir.join("a.json"), UNSORTED);
     write(&nested.join("b.json"), UNSORTED);
 
-    let status = Command::new(BIN).arg("--write").arg(&dir).status().unwrap();
+    let status = Command::new(BIN)
+        .args(["--write", "--no-ignore"])
+        .arg(&dir)
+        .status()
+        .unwrap();
     assert!(status.success());
 
     assert_eq!(fs::read_to_string(dir.join("a.json")).unwrap(), SORTED);
@@ -46,7 +59,7 @@ fn check_fails_and_names_each_unsorted_file_via_glob() {
     write(&dir.join("good.json"), SORTED);
 
     let output = Command::new(BIN)
-        .arg("--check")
+        .args(["--check", "--no-ignore"])
         .arg(dir.join("*.json"))
         .output()
         .unwrap();
@@ -66,7 +79,11 @@ fn refuses_to_print_multiple_files() {
     write(&dir.join("a.json"), SORTED);
     write(&dir.join("b.json"), SORTED);
 
-    let output = Command::new(BIN).arg(&dir).output().unwrap();
+    let output = Command::new(BIN)
+        .arg("--no-ignore")
+        .arg(&dir)
+        .output()
+        .unwrap();
     assert!(!output.status.success());
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert!(stderr.contains("--write or --check"), "stderr: {stderr}");
@@ -97,6 +114,43 @@ fn preserve_property_order_flag_via_stdin() {
     assert!(
         z < a,
         "property order should be preserved (z before a):\n{stdout}"
+    );
+}
+
+#[test]
+fn excludes_gitignored_files_during_expansion() {
+    let repo = workdir("gitignore");
+    git(&repo, &["init", "-q"]);
+    write(&repo.join(".gitignore"), "ignored/\n");
+    fs::create_dir_all(repo.join("ignored")).unwrap();
+    fs::create_dir_all(repo.join("kept")).unwrap();
+    write(&repo.join("ignored/a.schema.json"), UNSORTED);
+    write(&repo.join("kept/b.schema.json"), UNSORTED);
+
+    // Default: the ignored/ tree is skipped, so only kept/b is flagged.
+    let output = Command::new(BIN)
+        .current_dir(&repo)
+        .args(["--check", "."])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("b.schema.json"), "stderr: {stderr}");
+    assert!(
+        !stderr.contains("a.schema.json"),
+        "gitignored file leaked into results: {stderr}"
+    );
+
+    // --no-ignore opts the ignored file back in.
+    let output = Command::new(BIN)
+        .current_dir(&repo)
+        .args(["--check", "--no-ignore", "."])
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(
+        stderr.contains("a.schema.json"),
+        "--no-ignore should include the gitignored file: {stderr}"
     );
 }
 

@@ -84,6 +84,10 @@ json-schema-sort --write schemas/                 # whole tree
 json-schema-sort --check 'schemas/**/*.schema.json'
 ```
 
+Files discovered by expanding a directory or glob that git ignores are skipped
+(an explicitly named file is always processed). Pass `--no-ignore` to include
+git-ignored files too.
+
 ## pre-commit
 
 This repo ships [pre-commit](https://pre-commit.com) hooks. Add to your
@@ -96,7 +100,8 @@ This repo ships [pre-commit](https://pre-commit.com) hooks. Add to your
     - id: json-schema-sort # rewrites in place; use json-schema-sort-check to only verify
 ```
 
-Both hooks default to `*.schema.json`; override `files:` to change the set.
+Both hooks default to any `schema.json` or `*.schema.json` file anywhere in the
+tree; override `files:` to change the set.
 
 ## Library
 

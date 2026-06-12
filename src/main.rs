@@ -2,8 +2,9 @@ use std::{
     collections::BTreeSet,
     error::Error,
     fs,
-    io::{self, Read},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
+    process::{Command, Stdio},
 };
 
 use clap::Parser;
@@ -32,6 +33,11 @@ struct Args {
     /// sorting them alphabetically.
     #[arg(long)]
     preserve_property_order: bool,
+
+    /// Include git-ignored files when expanding directories and globs.
+    /// Explicitly named files are always processed regardless.
+    #[arg(long)]
+    no_ignore: bool,
 }
 
 /// Where the schemas to sort come from. Stdin and files are mutually exclusive,
@@ -53,7 +59,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let options = build_options(&args);
 
-    match resolve_sources(&args.inputs)? {
+    match resolve_sources(&args.inputs, !args.no_ignore)? {
         Source::Stdin => {
             if args.write {
                 return Err("--write requires a real input file".into());
@@ -128,7 +134,11 @@ fn build_options(args: &Args) -> SortOptions {
 /// Expand the positional inputs into a concrete [`Source`]. Files are gathered
 /// into a sorted, de-duplicated set so output is deterministic regardless of
 /// argument order, glob ordering, or directory traversal order.
-fn resolve_sources(inputs: &[String]) -> Result<Source, Box<dyn Error>> {
+///
+/// When `respect_gitignore` is set, files discovered by expanding a directory
+/// or glob are filtered through git's ignore rules. Files the user named
+/// explicitly are always kept — naming a path is an explicit override.
+fn resolve_sources(inputs: &[String], respect_gitignore: bool) -> Result<Source, Box<dyn Error>> {
     if inputs.is_empty() || (inputs.len() == 1 && inputs[0] == "-") {
         return Ok(Source::Stdin);
     }
@@ -136,22 +146,73 @@ fn resolve_sources(inputs: &[String]) -> Result<Source, Box<dyn Error>> {
         return Err("cannot mix stdin ('-') with file inputs".into());
     }
 
-    let mut files = BTreeSet::new();
+    let mut explicit = BTreeSet::new();
+    let mut expanded = BTreeSet::new();
     for input in inputs {
         let path = Path::new(input);
         if path.is_dir() {
-            collect_glob(&format!("{input}/**/*.json"), &mut files)?;
+            collect_glob(&format!("{input}/**/*.json"), &mut expanded)?;
         } else if path.is_file() {
-            files.insert(path.to_path_buf());
+            explicit.insert(path.to_path_buf());
         } else {
-            collect_glob(input, &mut files)?;
+            collect_glob(input, &mut expanded)?;
         }
     }
 
+    if respect_gitignore {
+        remove_gitignored(&mut expanded)?;
+    }
+
+    let mut files = explicit;
+    files.append(&mut expanded);
     if files.is_empty() {
         return Err(format!("no files matched: {}", inputs.join(", ")).into());
     }
     Ok(Source::Files(files.into_iter().collect()))
+}
+
+/// Drop paths that git ignores, using `git check-ignore` so the full ignore
+/// hierarchy (nested `.gitignore`, excludes, global config) is honored exactly.
+/// If git is unavailable or the inputs are not inside a repository, nothing is
+/// filtered — there is no ignore information to act on.
+fn remove_gitignored(files: &mut BTreeSet<PathBuf>) -> Result<(), Box<dyn Error>> {
+    if files.is_empty() {
+        return Ok(());
+    }
+
+    let mut child = match Command::new("git")
+        .args(["check-ignore", "--stdin", "-z"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(_) => return Ok(()),
+    };
+
+    {
+        let mut stdin = child.stdin.take().expect("stdin was piped");
+        for file in files.iter() {
+            stdin.write_all(file.as_os_str().as_encoded_bytes())?;
+            stdin.write_all(&[0])?;
+        }
+    }
+
+    let output = child.wait_with_output()?;
+    // 0 = some paths ignored, 1 = none ignored; anything else (e.g. 128 outside
+    // a repo) means there is no ignore data to apply, so leave the set as-is.
+    if !matches!(output.status.code(), Some(0 | 1)) {
+        return Ok(());
+    }
+
+    let ignored: BTreeSet<&[u8]> = output
+        .stdout
+        .split(|&byte| byte == 0)
+        .filter(|path| !path.is_empty())
+        .collect();
+    files.retain(|file| !ignored.contains(file.as_os_str().as_encoded_bytes()));
+    Ok(())
 }
 
 fn collect_glob(pattern: &str, out: &mut BTreeSet<PathBuf>) -> Result<(), Box<dyn Error>> {

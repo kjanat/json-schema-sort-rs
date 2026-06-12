@@ -5,17 +5,20 @@
 #     hooks:
 #       - id: json-schema-sort
 #
-# By default these match `*.schema.json`. Override `files:` to widen or narrow
-# the set (e.g. `files: ^schemas/.*\.json$`).
+# By default these match `**/*.schema.json` and `**/schema.json` (any
+# `schema.json` or `*.schema.json` file at any depth). pre-commit only ever
+# passes git-tracked files, so gitignored paths are already excluded. Override
+# `files:` to widen or narrow (e.g. `^schemas/.*\.json$` for all JSON under it).
+---
 - id: json-schema-sort
   name: Sort JSON Schema
   description: Deterministically sort JSON Schema files in place
   entry: json-schema-sort --write
   language: rust
-  files: \.schema\.json$
+  files: (^|/)([^/]+\.)?schema\.json$
 - id: json-schema-sort-check
   name: Check JSON Schema sorting
   description: Fail if any JSON Schema file is not already sorted
   entry: json-schema-sort --check
   language: rust
-  files: \.schema\.json$
+  files: (^|/)([^/]+\.)?schema\.json$
