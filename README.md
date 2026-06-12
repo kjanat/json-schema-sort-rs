@@ -18,7 +18,7 @@ keywords stay near the top.
 
 It deliberately does not sort arrays where order may be meaningful, such as `enum`, `examples`, `prefixItems`, `allOf`, `anyOf`, or `oneOf`.
 
-The literal value payloads of `const`, `enum`, `default`, and `examples` are treated as opaque: their contents are preserved exactly, including the key order of any objects inside them.
+The literal value payloads of `const`, `enum`, `default`, and `examples` are treated as opaque: the sorter does not recurse into them, so the structure and key order of any objects inside them are preserved. (The string APIs still round-trip through `serde_json`, so insignificant whitespace and some scalar lexemes may be normalized.)
 
 ## Installation
 

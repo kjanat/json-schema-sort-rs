@@ -305,8 +305,9 @@ fn schema_key_rank(key: &str) -> Option<u8> {
 }
 
 /// Keywords whose values are literal data payloads rather than subschemas.
-/// The sorter must not recurse into these, so that user-supplied values are
-/// preserved byte-for-byte (modulo serialization).
+/// The sorter must not recurse into these, so the structure and object-key
+/// order of user-supplied values are preserved (re-serialization through
+/// `serde_json` may still normalize whitespace and some scalar lexemes).
 fn is_opaque_value_key(key: &str) -> bool {
     matches!(key, "const" | "enum" | "default" | "examples")
 }
