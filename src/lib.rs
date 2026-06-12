@@ -185,14 +185,16 @@ fn compare_schema_keys(left: &str, right: &str) -> Ordering {
     }
 }
 
-// The ranking below mirrors the grouping the JSON Schema 2020-12 authors use
-// in their own meta-schemas: keywords are bucketed by vocabulary (function),
-// and within each bucket they follow the exact property order of that
-// vocabulary's meta-schema file (https://json-schema.org/draft/2020-12/meta/*).
-// The order of the buckets themselves is chosen for human readability
-// (identity -> documentation -> constraints -> annotations -> applicators),
-// so that metadata stays near the top rather than being sorted to the bottom.
-// Legacy keywords from older drafts are slotted next to their modern siblings.
+// Keywords are bucketed by their JSON Schema 2020-12 vocabulary (function),
+// the same grouping the spec authors use in their meta-schemas
+// (https://json-schema.org/draft/2020-12/meta/*). The buckets are ordered for
+// human readability (identity -> documentation -> constraints -> annotations
+// -> applicators) so that metadata stays near the top, and within a bucket the
+// order is the intuitive reading order: min before max, properties before
+// additionalProperties. Legacy keywords from older drafts are slotted next to
+// their modern siblings. A handful of non-standard tooling extensions are
+// recognized too: the description/enum "shadows" sit beside the standard
+// keyword they annotate, and the rest fall into a trailing extension bucket.
 fn schema_key_rank(key: &str) -> Option<u8> {
     Some(match key {
         // Core vocabulary (.../vocab/core)
@@ -213,34 +215,37 @@ fn schema_key_rank(key: &str) -> Option<u8> {
         // Meta-data vocabulary (.../vocab/meta-data)
         "title" => 20,
         "description" => 21,
-        "default" => 22,
-        "deprecated" => 23,
-        "readOnly" => 24,
-        "writeOnly" => 25,
-        "examples" => 26,
+        "markdownDescription" => 22, // vscode-json-languageservice, shadows description
+        "default" => 23,
+        "deprecated" => 24,
+        "readOnly" => 25,
+        "writeOnly" => 26,
+        "examples" => 27,
 
         // Validation vocabulary (.../vocab/validation)
         "type" => 30,
         "const" => 31,
         "enum" => 32,
-        "multipleOf" => 33,
-        "maximum" => 34,
-        "exclusiveMaximum" => 35,
+        "enumDescriptions" => 33, // vscode-json-languageservice, shadows enum
+        "markdownEnumDescriptions" => 34, // vscode-json-languageservice, shadows enum
+        "multipleOf" => 35,
         "minimum" => 36,
         "exclusiveMinimum" => 37,
-        "maxLength" => 38,
-        "minLength" => 39,
-        "pattern" => 40,
-        "maxItems" => 41,
-        "minItems" => 42,
-        "uniqueItems" => 43,
-        "maxContains" => 44,
-        "minContains" => 45,
-        "maxProperties" => 46,
-        "minProperties" => 47,
-        "required" => 48,
-        "dependentRequired" => 49,
-        "dependencies" => 50, // draft-07 legacy
+        "maximum" => 38,
+        "exclusiveMaximum" => 39,
+        "minLength" => 40,
+        "maxLength" => 41,
+        "pattern" => 42,
+        "minItems" => 43,
+        "maxItems" => 44,
+        "uniqueItems" => 45,
+        "minContains" => 46,
+        "maxContains" => 47,
+        "minProperties" => 48,
+        "maxProperties" => 49,
+        "required" => 50,
+        "dependentRequired" => 51,
+        "dependencies" => 52, // draft-07 legacy
 
         // Format vocabulary (.../vocab/format-annotation)
         "format" => 60,
@@ -255,11 +260,11 @@ fn schema_key_rank(key: &str) -> Option<u8> {
         "items" => 71,
         "additionalItems" => 72, // draft-07 legacy
         "contains" => 73,
-        "additionalProperties" => 74,
-        "properties" => 75,
-        "patternProperties" => 76,
-        "dependentSchemas" => 77,
-        "propertyNames" => 78,
+        "properties" => 74,
+        "patternProperties" => 75,
+        "additionalProperties" => 76,
+        "propertyNames" => 77,
+        "dependentSchemas" => 78,
         "if" => 79,
         "then" => 80,
         "else" => 81,
@@ -272,31 +277,28 @@ fn schema_key_rank(key: &str) -> Option<u8> {
         "unevaluatedItems" => 90,
         "unevaluatedProperties" => 91,
 
-        // Non-standard tooling extensions. These are not part of any JSON
-        // Schema vocabulary; they are recognized by the language servers that
-        // back SchemaStore. Ranked after every standard keyword but ahead of
-        // unknown keys, and grouped by the tool that consumes them.
+        // Non-standard tooling extensions that have no obvious standard sibling.
+        // Recognized by the language servers behind SchemaStore. Ranked after
+        // every standard keyword but ahead of unknown keys, grouped by the tool
+        // that consumes them.
         //
         // vscode-json-languageservice
-        "markdownDescription" => 100,
-        "enumDescriptions" => 101,
-        "markdownEnumDescriptions" => 102,
-        "defaultSnippets" => 103,
-        "allowTrailingCommas" => 104,
+        "defaultSnippets" => 100,
+        "allowTrailingCommas" => 101,
         // tamasfe/taplo
-        "x-taplo" => 105,
-        "x-taplo-info" => 106,
+        "x-taplo" => 102,
+        "x-taplo-info" => 103,
         // tombi-toml/tombi
-        "x-tombi-toml-version" => 107,
-        "x-tombi-array-values-order" => 108,
-        "x-tombi-array-values-order-by" => 109,
-        "x-tombi-table-keys-order" => 110,
-        "x-tombi-string-formats" => 111,
-        "x-tombi-additional-key-label" => 112,
+        "x-tombi-toml-version" => 104,
+        "x-tombi-array-values-order" => 105,
+        "x-tombi-array-values-order-by" => 106,
+        "x-tombi-table-keys-order" => 107,
+        "x-tombi-string-formats" => 108,
+        "x-tombi-additional-key-label" => 109,
         // IntelliJ
-        "x-intellij-language-injection" => 113,
-        "x-intellij-html-description" => 114,
-        "x-intellij-enum-metadata" => 115,
+        "x-intellij-language-injection" => 110,
+        "x-intellij-html-description" => 111,
+        "x-intellij-enum-metadata" => 112,
 
         _ => return None,
     })

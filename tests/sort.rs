@@ -67,6 +67,33 @@ fn groups_applicators_and_validation_by_vocabulary() {
 }
 
 #[test]
+fn orders_min_before_max_and_properties_before_additional() {
+    let mut value = json!({
+        "maximum": 10,
+        "minimum": 1,
+        "additionalProperties": false,
+        "properties": {},
+        "maxItems": 5,
+        "minItems": 0
+    });
+
+    json_schema_sort::sort_schema(&mut value);
+
+    let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
+    assert_eq!(
+        keys,
+        [
+            "minimum",
+            "maximum",
+            "minItems",
+            "maxItems",
+            "properties",
+            "additionalProperties"
+        ]
+    );
+}
+
+#[test]
 fn ranks_known_tooling_extensions_after_standard_keywords() {
     let mut value = json!({
         "x-taplo": {},
@@ -79,14 +106,15 @@ fn ranks_known_tooling_extensions_after_standard_keywords() {
     json_schema_sort::sort_schema(&mut value);
 
     let keys: Vec<_> = value.as_object().unwrap().keys().cloned().collect();
-    // Standard keywords first, then known extensions in tool order, then
-    // truly-unknown keys alphabetically.
+    // markdownDescription is a shadow of description and sorts next to it;
+    // x-taplo has no standard sibling and falls into the trailing extension
+    // bucket; truly-unknown keys sort alphabetically last.
     assert_eq!(
         keys,
         [
             "description",
-            "type",
             "markdownDescription",
+            "type",
             "x-taplo",
             "zzz-unknown"
         ]
