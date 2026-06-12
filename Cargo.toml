@@ -9,7 +9,7 @@ repository   = "https://github.com/kjanat/json-schema-sort-rs"
 license      = "Apache-2.0 OR MIT"
 keywords     = ["formatter", "json", "schema", "sort"]
 categories   = ["command-line-utilities", "development-tools"]
-include      = ["/Cargo.toml", "/README.md", "/src", "/tests"]
+include      = ["/Cargo.toml", "/LICENSE*", "/README.md", "/src", "/tests"]
 
 [[bin]]
 name              = "json-schema-sort"
